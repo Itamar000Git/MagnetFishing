@@ -8,7 +8,9 @@ using UnityEngine.InputSystem;
 /// Magnet outward along its own local -Y axis, stretching Rope to visually
 /// follow it each frame. On reaching max extension, the magnet retracts back
 /// to its resting position and the idle swing resumes automatically.
-/// Catch detection is not implemented here yet.
+/// Owns catch-state decisions: MagnetCatchDetector (on the Magnet child)
+/// forwards trigger contacts here via TryCatch, and this controller decides
+/// whether a catch is valid and carries the caught object through retraction.
 /// </summary>
 [RequireComponent(typeof(MagnetSwingController))]
 public class MagnetLaunchController : MonoBehaviour
@@ -35,8 +37,25 @@ public class MagnetLaunchController : MonoBehaviour
     [Tooltip("Placeholder tuning value: how fast the magnet retracts back toward the pivot, in local units per second. Not final.")]
     [SerializeField] private float retractSpeed = 4f;
 
+    [Tooltip("Temporary placeholder drop-off point for caught objects once retraction completes. Not final game design. Auto-found via GameObject.Find(\"PlayerArea\") if left empty.")]
+    [SerializeField] private Transform collectedLocationParent;
+
+    [Tooltip("Placeholder tuning value, not final: object weight at or below this retracts at full (unscaled) retractSpeed.")]
+    [SerializeField] private float minWeightForSpeedScaling = 0.5f;
+
+    [Tooltip("Placeholder tuning value, not final: object weight at or above this retracts at the slowest speed (see heavyObjectSpeedMultiplier).")]
+    [SerializeField] private float maxWeightForSpeedScaling = 5f;
+
+    [Tooltip("Placeholder tuning value, not final: fraction of retractSpeed used for the heaviest supported object (e.g. 0.35 = 35% of normal speed). Clamped to a small positive floor at runtime.")]
+    [SerializeField] private float heavyObjectSpeedMultiplier = 0.35f;
+
+    [Tooltip("Placeholder tuning value, not final: absolute floor on the final computed retract speed so no combination of the weight-scaling fields can ever stall the retraction.")]
+    [SerializeField] private float minEffectiveRetractSpeed = 0.5f;
+
     private MagnetSwingController swingController;
     private MagnetState currentState = MagnetState.Idle;
+    private CatchableObject caughtObject;
+    private float currentRetractSpeed;
 
     private Vector3 magnetRestingLocalPosition;
     private Vector3 ropeRestingLocalScale;
@@ -54,6 +73,15 @@ public class MagnetLaunchController : MonoBehaviour
         if (magnet == null)
         {
             magnet = transform.Find("Magnet");
+        }
+
+        if (collectedLocationParent == null)
+        {
+            GameObject playerArea = GameObject.Find("PlayerArea");
+            if (playerArea != null)
+            {
+                collectedLocationParent = playerArea.transform;
+            }
         }
 
         if (magnet != null)
@@ -143,6 +171,62 @@ public class MagnetLaunchController : MonoBehaviour
     private void BeginRetracting()
     {
         currentState = MagnetState.Retracting;
+        currentRetractSpeed = ComputeEffectiveRetractSpeed();
+    }
+
+    /// <summary>
+    /// Maps caught object weight to a retract speed. Weight is clamped to
+    /// [minWeightForSpeedScaling, maxWeightForSpeedScaling] and linearly
+    /// interpolated to a multiplier between 1.0 (full speed, light objects)
+    /// and heavyObjectSpeedMultiplier (slow, heavy objects), then floored so
+    /// retraction can never stall. Computed once per retraction, not per
+    /// frame, since weight doesn't change mid-retraction.
+    /// </summary>
+    private float ComputeEffectiveRetractSpeed()
+    {
+        if (caughtObject == null)
+        {
+            return retractSpeed;
+        }
+
+        float clampedWeight = Mathf.Clamp(caughtObject.Weight, minWeightForSpeedScaling, maxWeightForSpeedScaling);
+        float t = Mathf.InverseLerp(minWeightForSpeedScaling, maxWeightForSpeedScaling, clampedWeight);
+        float safeMultiplier = Mathf.Max(heavyObjectSpeedMultiplier, 0.01f);
+        float multiplier = Mathf.Lerp(1f, safeMultiplier, t);
+        float effectiveSpeed = retractSpeed * multiplier;
+
+        return Mathf.Max(effectiveSpeed, minEffectiveRetractSpeed);
+    }
+
+    /// <summary>
+    /// Called by MagnetCatchDetector when the magnet's trigger touches a
+    /// CatchableObject. Only takes effect while actively extending and only
+    /// if nothing is currently being carried (this single null-check also
+    /// prevents catching a second object while retracting, since caughtObject
+    /// is already non-null by then).
+    /// </summary>
+    public void TryCatch(CatchableObject obj)
+    {
+        if (currentState != MagnetState.Extending || caughtObject != null)
+        {
+            return;
+        }
+
+        caughtObject = obj;
+
+        // Reparenting with world position preserved keeps the caught object
+        // moving with the magnet during retraction with zero drift, with no
+        // need for manual per-frame position syncing.
+        obj.transform.SetParent(magnet, true);
+
+        Collider2D caughtCollider = obj.GetComponent<Collider2D>();
+        if (caughtCollider != null)
+        {
+            // Disabling it also prevents this same contact from firing TryCatch again.
+            caughtCollider.enabled = false;
+        }
+
+        BeginRetracting();
     }
 
     private void UpdateRetracting()
@@ -153,7 +237,7 @@ public class MagnetLaunchController : MonoBehaviour
         }
 
         Vector3 magnetLocalPosition = magnet.localPosition;
-        magnetLocalPosition.y = Mathf.MoveTowards(magnetLocalPosition.y, magnetRestingLocalPosition.y, retractSpeed * Time.deltaTime);
+        magnetLocalPosition.y = Mathf.MoveTowards(magnetLocalPosition.y, magnetRestingLocalPosition.y, currentRetractSpeed * Time.deltaTime);
         magnet.localPosition = magnetLocalPosition;
 
         UpdateRopeStretch();
@@ -175,6 +259,22 @@ public class MagnetLaunchController : MonoBehaviour
         {
             rope.localScale = ropeRestingLocalScale;
             rope.localPosition = ropeRestingLocalPosition;
+        }
+
+        // Temporary placeholder "collected" handling: the caught object is
+        // dropped off at collectedLocationParent and left sitting there,
+        // inert (collider stays disabled, object is not destroyed and no
+        // score is awarded yet). Final collection/scoring behavior is not
+        // implemented here.
+        if (caughtObject != null)
+        {
+            if (collectedLocationParent != null)
+            {
+                caughtObject.transform.SetParent(collectedLocationParent, true);
+                caughtObject.transform.localPosition = Vector3.zero;
+            }
+
+            caughtObject = null;
         }
 
         currentState = MagnetState.Idle;
