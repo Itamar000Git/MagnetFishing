@@ -4,9 +4,10 @@ using UnityEngine;
 /// Swings this transform's local rotation smoothly left and right around its
 /// resting orientation. Intended to be attached to the AimPivot GameObject in
 /// Level01, so that Rope and Magnet (its children) swing along with it.
-/// Rotation is driven from a continuous sine wave rather than accumulated
-/// deltas, so toggling <see cref="isSwinging"/> off/on later (e.g. when the
-/// magnet launches) will simply freeze/resume it without extra bookkeeping.
+/// Rotation is driven from an internal phase accumulator (<see cref="swingTime"/>)
+/// rather than the global clock, so the swing can be reset to a known phase
+/// (rightmost) every time it resumes, instead of picking up wherever
+/// Time.time happens to be.
 /// </summary>
 public class MagnetSwingController : MonoBehaviour
 {
@@ -19,17 +20,28 @@ public class MagnetSwingController : MonoBehaviour
     /// <summary>Whether the idle swing is currently active. Set to false to freeze the aim (e.g. on launch).</summary>
     private bool isSwinging = true;
 
-    private Quaternion restingLocalRotation;
+    // Local phase accumulator driving the swing, in place of Time.time. Using cos()
+    // means swingTime == 0 evaluates to exactly +maxSwingAngleDegrees (rightmost),
+    // matching the required "always resumes from rightmost" behavior.
+    private float swingTime;
 
     public bool IsSwinging
     {
         get => isSwinging;
-        set => isSwinging = value;
+        set
+        {
+            isSwinging = value;
+
+            if (isSwinging)
+            {
+                ResetToRightmost();
+            }
+        }
     }
 
     private void Awake()
     {
-        restingLocalRotation = transform.localRotation;
+        ResetToRightmost();
     }
 
     private void Update()
@@ -39,7 +51,24 @@ public class MagnetSwingController : MonoBehaviour
             return;
         }
 
-        float angle = Mathf.Sin(Time.time * swingSpeed) * maxSwingAngleDegrees;
-        transform.localRotation = restingLocalRotation * Quaternion.Euler(0f, 0f, angle);
+        swingTime += Time.deltaTime;
+        ApplySwingRotation();
+    }
+
+    /// <summary>
+    /// Resets the swing phase to the rightmost extreme (+maxSwingAngleDegrees)
+    /// and applies the resulting rotation immediately, so there is no one-frame
+    /// lag between the reset and the visible pose.
+    /// </summary>
+    public void ResetToRightmost()
+    {
+        swingTime = 0f;
+        ApplySwingRotation();
+    }
+
+    private void ApplySwingRotation()
+    {
+        float angle = Mathf.Cos(swingTime * swingSpeed) * maxSwingAngleDegrees;
+        transform.localRotation = Quaternion.Euler(0f, 0f, angle);
     }
 }
