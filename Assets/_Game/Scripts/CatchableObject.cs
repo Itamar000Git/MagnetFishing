@@ -13,6 +13,30 @@ public class CatchableObject : MonoBehaviour
     [Tooltip("Placeholder for a future scoring system: value awarded when this object is collected. Not wired up yet.")]
     [SerializeField] private int rewardValue = 10;
 
+    [Tooltip("Debug/display identity for this catchable instance (e.g. \"MetalScrap\", \"Bicycle\"). Purely for identification/logging, not used by gameplay logic yet.")]
+    [SerializeField] private string objectName = "Catchable Object";
+
     public float Weight => weight;
     public int RewardValue => rewardValue;
+    public string ObjectName => objectName;
+
+    private bool isCollected;
+    public bool IsCollected => isCollected;
+
+    /// <summary>
+    /// Marks this object as collected and removes it from visible gameplay.
+    /// Deactivating (rather than destroying) keeps it simple to inspect/debug
+    /// and leaves room for a future scoring system to read its data afterward
+    /// if needed. Safe to call more than once; only takes effect the first time.
+    /// </summary>
+    public void MarkCollected()
+    {
+        if (isCollected)
+        {
+            return;
+        }
+
+        isCollected = true;
+        gameObject.SetActive(false);
+    }
 }

@@ -37,9 +37,6 @@ public class MagnetLaunchController : MonoBehaviour
     [Tooltip("Placeholder tuning value: how fast the magnet retracts back toward the pivot, in local units per second. Not final.")]
     [SerializeField] private float retractSpeed = 4f;
 
-    [Tooltip("Temporary placeholder drop-off point for caught objects once retraction completes. Not final game design. Auto-found via GameObject.Find(\"PlayerArea\") if left empty.")]
-    [SerializeField] private Transform collectedLocationParent;
-
     [Tooltip("Placeholder tuning value, not final: object weight at or below this retracts at full (unscaled) retractSpeed.")]
     [SerializeField] private float minWeightForSpeedScaling = 0.5f;
 
@@ -51,6 +48,9 @@ public class MagnetLaunchController : MonoBehaviour
 
     [Tooltip("Placeholder tuning value, not final: absolute floor on the final computed retract speed so no combination of the weight-scaling fields can ever stall the retraction.")]
     [SerializeField] private float minEffectiveRetractSpeed = 0.5f;
+
+    [Tooltip("Reference to the level's ScoreManager. Auto-found via FindFirstObjectByType if left empty.")]
+    [SerializeField] private ScoreManager scoreManager;
 
     private MagnetSwingController swingController;
     private MagnetState currentState = MagnetState.Idle;
@@ -75,15 +75,6 @@ public class MagnetLaunchController : MonoBehaviour
             magnet = transform.Find("Magnet");
         }
 
-        if (collectedLocationParent == null)
-        {
-            GameObject playerArea = GameObject.Find("PlayerArea");
-            if (playerArea != null)
-            {
-                collectedLocationParent = playerArea.transform;
-            }
-        }
-
         if (magnet != null)
         {
             magnetRestingLocalPosition = magnet.localPosition;
@@ -93,6 +84,11 @@ public class MagnetLaunchController : MonoBehaviour
         {
             ropeRestingLocalScale = rope.localScale;
             ropeRestingLocalPosition = rope.localPosition;
+        }
+
+        if (scoreManager == null)
+        {
+            scoreManager = FindFirstObjectByType<ScoreManager>();
         }
     }
 
@@ -207,7 +203,7 @@ public class MagnetLaunchController : MonoBehaviour
     /// </summary>
     public void TryCatch(CatchableObject obj)
     {
-        if (currentState != MagnetState.Extending || caughtObject != null)
+        if (currentState != MagnetState.Extending || caughtObject != null || obj.IsCollected)
         {
             return;
         }
@@ -261,19 +257,14 @@ public class MagnetLaunchController : MonoBehaviour
             rope.localPosition = ropeRestingLocalPosition;
         }
 
-        // Temporary placeholder "collected" handling: the caught object is
-        // dropped off at collectedLocationParent and left sitting there,
-        // inert (collider stays disabled, object is not destroyed and no
-        // score is awarded yet). Final collection/scoring behavior is not
-        // implemented here.
         if (caughtObject != null)
         {
-            if (collectedLocationParent != null)
+            if (scoreManager != null)
             {
-                caughtObject.transform.SetParent(collectedLocationParent, true);
-                caughtObject.transform.localPosition = Vector3.zero;
+                scoreManager.AddScore(caughtObject.RewardValue);
             }
 
+            caughtObject.MarkCollected();
             caughtObject = null;
         }
 
