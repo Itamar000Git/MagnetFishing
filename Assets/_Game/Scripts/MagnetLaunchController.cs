@@ -61,6 +61,19 @@ public class MagnetLaunchController : MonoBehaviour
     private Vector3 ropeRestingLocalScale;
     private Vector3 ropeRestingLocalPosition;
 
+    /// <summary>
+    /// Gates launch input only. Clearing this does not interrupt a launch
+    /// already in progress: the current cycle still runs to completion.
+    /// </summary>
+    public bool LaunchEnabled { get; set; } = true;
+
+    /// <summary>
+    /// True when no launch cycle is in progress. ReturnToIdle awards the caught
+    /// object's score before entering Idle, so once this reads true after a
+    /// retrieval, that retrieval's score is already in ScoreManager.
+    /// </summary>
+    public bool IsIdle => currentState == MagnetState.Idle;
+
     private void Awake()
     {
         swingController = GetComponent<MagnetSwingController>();
@@ -97,7 +110,7 @@ public class MagnetLaunchController : MonoBehaviour
         switch (currentState)
         {
             case MagnetState.Idle:
-                if (LaunchInputTriggered())
+                if (LaunchEnabled && LaunchInputTriggered())
                 {
                     BeginExtending();
                 }
