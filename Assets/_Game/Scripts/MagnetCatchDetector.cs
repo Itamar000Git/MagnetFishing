@@ -22,7 +22,8 @@ public class MagnetCatchDetector : MonoBehaviour
 
     private void OnTriggerEnter2D(Collider2D other)
     {
-        CatchableObject catchable = other.GetComponent<CatchableObject>();
+        // The catch collider may be a child of the catchable, like a fish's Hook.
+        CatchableObject catchable = other.GetComponentInParent<CatchableObject>();
 
         if (catchable != null && launchController != null)
         {

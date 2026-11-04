@@ -23,6 +23,26 @@ public class CatchableObject : MonoBehaviour
     private bool isCollected;
     public bool IsCollected => isCollected;
 
+    private bool isCaught;
+
+    /// <summary>True from the moment the magnet catches this object.</summary>
+    public bool IsCaught => isCaught;
+
+    /// <summary>
+    /// Marks this object as caught and disables its colliders, including those
+    /// on children such as a fish's Hook, so a carried object can't produce
+    /// further contacts. Called by MagnetLaunchController when a catch is accepted.
+    /// </summary>
+    public void MarkCaught()
+    {
+        isCaught = true;
+
+        foreach (Collider2D objectCollider in GetComponentsInChildren<Collider2D>())
+        {
+            objectCollider.enabled = false;
+        }
+    }
+
     /// <summary>
     /// Marks this object as collected and removes it from visible gameplay.
     /// Deactivating (rather than destroying) keeps it simple to inspect/debug

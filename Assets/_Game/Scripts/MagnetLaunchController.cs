@@ -228,12 +228,7 @@ public class MagnetLaunchController : MonoBehaviour
         // need for manual per-frame position syncing.
         obj.transform.SetParent(magnet, true);
 
-        Collider2D caughtCollider = obj.GetComponent<Collider2D>();
-        if (caughtCollider != null)
-        {
-            // Disabling it also prevents this same contact from firing TryCatch again.
-            caughtCollider.enabled = false;
-        }
+        obj.MarkCaught();
 
         BeginRetracting();
     }
