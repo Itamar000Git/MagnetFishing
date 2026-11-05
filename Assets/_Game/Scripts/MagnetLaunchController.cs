@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -73,6 +74,12 @@ public class MagnetLaunchController : MonoBehaviour
     /// retrieval, that retrieval's score is already in ScoreManager.
     /// </summary>
     public bool IsIdle => currentState == MagnetState.Idle;
+
+    /// <summary>Raised when a catch is accepted, after the object's colliders are disabled.</summary>
+    public event Action<CatchableObject> ObjectCaught;
+
+    /// <summary>Raised with the reward value at the moment it is added to ScoreManager.</summary>
+    public event Action<int> RewardAwarded;
 
     private void Awake()
     {
@@ -231,6 +238,8 @@ public class MagnetLaunchController : MonoBehaviour
         obj.MarkCaught();
 
         BeginRetracting();
+
+        ObjectCaught?.Invoke(obj);
     }
 
     private void UpdateRetracting()
@@ -270,6 +279,7 @@ public class MagnetLaunchController : MonoBehaviour
             if (scoreManager != null)
             {
                 scoreManager.AddScore(caughtObject.RewardValue);
+                RewardAwarded?.Invoke(caughtObject.RewardValue);
             }
 
             caughtObject.MarkCollected();
