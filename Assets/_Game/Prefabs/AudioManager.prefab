@@ -53,9 +53,11 @@ MonoBehaviour:
   musicTracks:
   - {fileID: 8300000, guid: 7a6bf4bd01683c142937c9d44b3f75d3, type: 3}
   defaultMusicTrack: 0
-  musicMixVolume: 0.2
+  musicMixVolume: 0.4
+  defaultMusicVolume: 0.5
   levelEndMusicScale: 0.25
   musicFadeSeconds: 0.3
+  defaultSfxVolume: 1
   launchSfx:
     clip: {fileID: 8300000, guid: c03abe4ab6ebd0a43b5c3c2de0641253, type: 3}
     volume: 0.5
@@ -71,6 +73,9 @@ MonoBehaviour:
   levelFailedSfx:
     clip: {fileID: 8300000, guid: ab346d90bece0094da7fce378006c4f1, type: 3}
     volume: 0.75
+  previewSfx:
+    clip: {fileID: 8300000, guid: 478dc5d20cd8e254a94b291e507c2897, type: 3}
+    volume: 0.7
 --- !u!82 &2252630388560993053
 AudioSource:
   m_ObjectHideFlags: 0

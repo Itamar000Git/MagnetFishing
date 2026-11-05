@@ -20,6 +20,8 @@ public class AudioManager : MonoBehaviour
     private const string MusicEnabledKey = "Audio.MusicEnabled";
     private const string SfxEnabledKey = "Audio.SfxEnabled";
     private const string MusicTrackKey = "Audio.MusicTrack";
+    private const string MusicVolumeKey = "Audio.MusicVolume";
+    private const string SfxVolumeKey = "Audio.SfxVolume";
 
     public static AudioManager Instance { get; private set; }
 
@@ -34,9 +36,13 @@ public class AudioManager : MonoBehaviour
     [Tooltip("Track used until the player has selected one.")]
     [SerializeField] private int defaultMusicTrack;
 
-    [Tooltip("Rough mix level that keeps music behind gameplay sounds. Not final.")]
+    [Tooltip("AudioSource volume with the player's music volume at maximum. Not final.")]
     [Range(0f, 1f)]
-    [SerializeField] private float musicMixVolume = 0.2f;
+    [SerializeField] private float musicMixVolume = 0.4f;
+
+    [Tooltip("Player music volume until the player has chosen one.")]
+    [Range(0f, 1f)]
+    [SerializeField] private float defaultMusicVolume = 0.5f;
 
     [Tooltip("Fraction of the normal music volume kept while a level-ending sound plays.")]
     [Range(0f, 1f)]
@@ -45,12 +51,19 @@ public class AudioManager : MonoBehaviour
     [Tooltip("Seconds taken to fade music down at level end, or back up afterwards.")]
     [SerializeField] private float musicFadeSeconds = 0.3f;
 
+    [Tooltip("Player SFX volume until the player has chosen one.")]
+    [Range(0f, 1f)]
+    [SerializeField] private float defaultSfxVolume = 1f;
+
     [Header("SFX (volumes are a rough mix, not final)")]
     [SerializeField] private SoundEffect launchSfx;
     [SerializeField] private SoundEffect catchSfx;
     [SerializeField] private SoundEffect retractLoopSfx;
     [SerializeField] private SoundEffect levelCompleteSfx;
     [SerializeField] private SoundEffect levelFailedSfx;
+
+    [Tooltip("Played by the settings menu so the player can hear the chosen SFX volume.")]
+    [SerializeField] private SoundEffect previewSfx;
 
     private float musicVolume = 1f;
     private float sfxVolume = 1f;
@@ -82,6 +95,8 @@ public class AudioManager : MonoBehaviour
 
         MusicEnabled = PlayerPrefs.GetInt(MusicEnabledKey, 1) == 1;
         SfxEnabled = PlayerPrefs.GetInt(SfxEnabledKey, 1) == 1;
+        musicVolume = Mathf.Clamp01(PlayerPrefs.GetFloat(MusicVolumeKey, defaultMusicVolume));
+        sfxVolume = Mathf.Clamp01(PlayerPrefs.GetFloat(SfxVolumeKey, defaultSfxVolume));
 
         musicSource.loop = true;
         retractLoopSource.loop = true;
@@ -98,6 +113,14 @@ public class AudioManager : MonoBehaviour
         {
             SceneManager.sceneLoaded -= HandleSceneLoaded;
             Instance = null;
+        }
+    }
+
+    private void OnApplicationPause(bool paused)
+    {
+        if (paused)
+        {
+            SaveSettings();
         }
     }
 
@@ -140,7 +163,7 @@ public class AudioManager : MonoBehaviour
         StepMusicTrack(-1);
     }
 
-    /// <summary>Turning music off stops it; turning it back on restarts the current track.</summary>
+    /// <summary>Turning music off pauses it; turning it back on resumes from the same point.</summary>
     public void SetMusicEnabled(bool enabled)
     {
         MusicEnabled = enabled;
@@ -149,17 +172,27 @@ public class AudioManager : MonoBehaviour
 
         if (!enabled)
         {
-            musicSource.Stop();
+            musicSource.Pause();
         }
         else if (!musicSource.isPlaying)
         {
-            musicSource.Play();
+            // UnPause does nothing for a track that has not started, such as
+            // when the game was launched with music off.
+            if (musicSource.timeSamples > 0)
+            {
+                musicSource.UnPause();
+            }
+            else
+            {
+                musicSource.Play();
+            }
         }
     }
 
     public void SetMusicVolume(float volume)
     {
         musicVolume = Mathf.Clamp01(volume);
+        PlayerPrefs.SetFloat(MusicVolumeKey, musicVolume);
         RefreshMusicVolume();
     }
 
@@ -179,7 +212,17 @@ public class AudioManager : MonoBehaviour
     public void SetSfxVolume(float volume)
     {
         sfxVolume = Mathf.Clamp01(volume);
+        PlayerPrefs.SetFloat(SfxVolumeKey, sfxVolume);
         RefreshRetractLoopVolume();
+    }
+
+    /// <summary>
+    /// Writes preferences to disk. The volume setters skip this because a dragged
+    /// slider calls them every frame, so callers save once the change is finished.
+    /// </summary>
+    public void SaveSettings()
+    {
+        PlayerPrefs.Save();
     }
 
     public void PlayLaunchSfx()
@@ -190,6 +233,11 @@ public class AudioManager : MonoBehaviour
     public void PlayCatchSfx()
     {
         PlaySfx(catchSfx);
+    }
+
+    public void PlaySfxPreview()
+    {
+        PlaySfx(previewSfx);
     }
 
     public void StartRetractLoop()

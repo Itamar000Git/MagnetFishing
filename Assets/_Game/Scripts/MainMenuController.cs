@@ -2,12 +2,13 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 
 /// <summary>
-/// Handles Main Menu button actions: Play, Settings (stub), Exit.
+/// Handles Main Menu button actions: Play, Settings, Exit.
 /// Wired to Button.onClick via the Inspector on the MenuContent GameObject.
 /// </summary>
 public class MainMenuController : MonoBehaviour
 {
     [SerializeField] private string level01SceneName = "Level01";
+    [SerializeField] private AudioSettingsPanel settingsPanel;
 
     public void OnPlayButtonPressed()
     {
@@ -16,9 +17,7 @@ public class MainMenuController : MonoBehaviour
 
     public void OnSettingsButtonPressed()
     {
-        // Settings menu is not implemented yet. Stub kept so the button
-        // is safely wired and verifiable by QA without throwing errors.
-        Debug.Log("Settings button pressed. Settings menu not implemented yet.");
+        settingsPanel.Open();
     }
 
     public void OnExitButtonPressed()
