@@ -75,6 +75,15 @@ public class MagnetLaunchController : MonoBehaviour
     /// </summary>
     public bool IsIdle => currentState == MagnetState.Idle;
 
+    /// <summary>Raised once for each launch that actually starts.</summary>
+    public event Action Launched;
+
+    /// <summary>Raised when the magnet starts returning, with or without a caught object.</summary>
+    public event Action RetractionStarted;
+
+    /// <summary>Raised when the magnet has fully returned.</summary>
+    public event Action RetractionEnded;
+
     /// <summary>Raised when a catch is accepted, after the object's colliders are disabled.</summary>
     public event Action<CatchableObject> ObjectCaught;
 
@@ -152,6 +161,7 @@ public class MagnetLaunchController : MonoBehaviour
     {
         currentState = MagnetState.Extending;
         swingController.IsSwinging = false;
+        Launched?.Invoke();
     }
 
     private void UpdateExtending()
@@ -188,6 +198,7 @@ public class MagnetLaunchController : MonoBehaviour
     {
         currentState = MagnetState.Retracting;
         currentRetractSpeed = ComputeEffectiveRetractSpeed();
+        RetractionStarted?.Invoke();
     }
 
     /// <summary>
@@ -288,6 +299,7 @@ public class MagnetLaunchController : MonoBehaviour
 
         currentState = MagnetState.Idle;
         swingController.IsSwinging = true;
+        RetractionEnded?.Invoke();
     }
 
     private void UpdateRopeStretch()
