@@ -42,6 +42,9 @@ public class LevelManager : MonoBehaviour
 
     public int TargetScore => targetScore;
 
+    /// <summary>Holds the countdown and result check, such as while the How to Play overlay is open.</summary>
+    public bool TimerPaused { get; set; }
+
     /// <summary>Raised once, when the level moves from Playing to Won or Lost.</summary>
     public event Action<LevelState> StateChanged;
 
@@ -56,7 +59,7 @@ public class LevelManager : MonoBehaviour
 
     private void Update()
     {
-        if (State != LevelState.Playing)
+        if (State != LevelState.Playing || TimerPaused)
         {
             return;
         }

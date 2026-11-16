@@ -38,6 +38,9 @@ public class MagnetLaunchController : MonoBehaviour
     [Tooltip("Placeholder tuning value: how fast the magnet retracts back toward the pivot, in local units per second. Not final.")]
     [SerializeField] private float retractSpeed = 4f;
 
+    [Tooltip("Placeholder tuning value, not final: how fast the magnet retracts when nothing was caught, in local units per second.")]
+    [SerializeField] private float emptyRetractSpeed = 4.5f;
+
     [Tooltip("Placeholder tuning value, not final: object weight at or below this retracts at full (unscaled) retractSpeed.")]
     [SerializeField] private float minWeightForSpeedScaling = 0.5f;
 
@@ -213,7 +216,7 @@ public class MagnetLaunchController : MonoBehaviour
     {
         if (caughtObject == null)
         {
-            return retractSpeed;
+            return emptyRetractSpeed;
         }
 
         float clampedWeight = Mathf.Clamp(caughtObject.Weight, minWeightForSpeedScaling, maxWeightForSpeedScaling);
