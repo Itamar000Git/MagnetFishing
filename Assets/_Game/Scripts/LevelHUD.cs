@@ -13,6 +13,9 @@ public class LevelHUD : MonoBehaviour
     [SerializeField] private TextMeshProUGUI targetLabel;
     [SerializeField] private TextMeshProUGUI timerLabel;
 
+    [Tooltip("Shows the active level number, e.g. \"LEVEL 1\". Source of truth is LevelManager.ActiveLevel.")]
+    [SerializeField] private TextMeshProUGUI levelLabel;
+
     [Tooltip("Root of the result panel. Hidden while the level is Playing.")]
     [SerializeField] private GameObject resultPanel;
 
@@ -38,6 +41,11 @@ public class LevelHUD : MonoBehaviour
         if (targetLabel != null)
         {
             targetLabel.text = $"Target: {levelManager.TargetScore}";
+        }
+
+        if (levelLabel != null)
+        {
+            levelLabel.text = $"LEVEL {levelManager.ActiveLevel}";
         }
 
         RefreshTimer();

@@ -126,6 +126,27 @@ public class LevelProgressManager : MonoBehaviour
         return LevelStartScore;
     }
 
+    /// <summary>
+    /// Starts a fresh campaign run from Level 1 with no cumulative score,
+    /// without touching HighestUnlockedLevel: unlock progress is kept for a
+    /// future Continue/Level Select flow, but PLAY always begins a new run
+    /// until that flow exists. Resets the level-start checkpoint marker so
+    /// Level 1's own EstablishLevelStartCheckpoint call captures a fresh
+    /// checkpoint of 0 instead of reusing a stale one left over from a
+    /// previous run.
+    /// </summary>
+    public void StartNewRun()
+    {
+        SetCurrentLevel(DefaultLevel);
+        SetCumulativeScore(DefaultCumulativeScore);
+
+        LevelStartScore = DefaultCumulativeScore;
+        levelStartScoreLevel = NoCheckpointLevel;
+        PlayerPrefs.SetInt(LevelStartScoreKey, LevelStartScore);
+        PlayerPrefs.SetInt(LevelStartScoreLevelKey, levelStartScoreLevel);
+        PlayerPrefs.Save();
+    }
+
     /// <summary>Clears all progression PlayerPrefs and resets to defaults. For testing.</summary>
     public void ResetProgress()
     {

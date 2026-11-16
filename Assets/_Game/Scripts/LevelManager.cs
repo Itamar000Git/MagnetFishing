@@ -39,7 +39,6 @@ public class LevelManager : MonoBehaviour
     [SerializeField] private string mainMenuSceneName = "MainMenu";
 
     private float elapsedTime;
-    private bool timeExpired;
 
     public LevelState State { get; private set; } = LevelState.Playing;
 
@@ -111,28 +110,20 @@ public class LevelManager : MonoBehaviour
             return;
         }
 
-        if (!timeExpired)
+        elapsedTime += Time.deltaTime;
+
+        if (RemainingTime > 0f)
         {
-            elapsedTime += Time.deltaTime;
-
-            if (RemainingTime > 0f)
-            {
-                return;
-            }
-
-            timeExpired = true;
-            launchController.LaunchEnabled = false;
+            return;
         }
 
-        // Design choice: a launch already in flight at time zero runs its normal
-        // cycle (catch or max distance, retract, award) before the result is
-        // decided, so an object caught in time still counts. State stays Playing
-        // and the timer stays at 0 during this window. IsIdle only becomes true
-        // after the award, so the score read below includes the final catch.
-        if (launchController.IsIdle)
-        {
-            FinishLevel();
-        }
+        // Timer just hit 0 this frame: no further launches, and any in-flight
+        // cycle (extending, retracting, or carrying a caught-but-not-yet-awarded
+        // object) is cancelled immediately with no reward, so Win/Loss below is
+        // evaluated against exactly the score that existed at timeout.
+        launchController.LaunchEnabled = false;
+        launchController.CancelCycle();
+        FinishLevel();
     }
 
     // Called exactly once per level: Update returns early once State is no

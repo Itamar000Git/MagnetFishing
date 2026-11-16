@@ -305,6 +305,41 @@ public class MagnetLaunchController : MonoBehaviour
         RetractionEnded?.Invoke();
     }
 
+    /// <summary>
+    /// Immediately aborts an in-progress Extending/Retracting cycle with no
+    /// reward, snapping the magnet/rope back to rest and returning to Idle.
+    /// Any carried object is removed from play without awarding its value.
+    /// Called by LevelManager the instant time expires, so a catch already in
+    /// flight can never complete and score after the deadline. Does nothing
+    /// while already Idle.
+    /// </summary>
+    public void CancelCycle()
+    {
+        if (currentState == MagnetState.Idle)
+        {
+            return;
+        }
+
+        if (caughtObject != null)
+        {
+            caughtObject.MarkCollected();
+            caughtObject = null;
+        }
+
+        if (magnet != null)
+        {
+            magnet.localPosition = magnetRestingLocalPosition;
+        }
+
+        if (rope != null)
+        {
+            rope.localScale = ropeRestingLocalScale;
+            rope.localPosition = ropeRestingLocalPosition;
+        }
+
+        currentState = MagnetState.Idle;
+    }
+
     private void UpdateRopeStretch()
     {
         if (rope == null || magnet == null)

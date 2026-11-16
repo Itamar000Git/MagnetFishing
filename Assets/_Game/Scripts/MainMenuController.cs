@@ -14,7 +14,7 @@ public class MainMenuController : MonoBehaviour
     {
         if (LevelProgressManager.Instance != null)
         {
-            LevelProgressManager.Instance.SetCurrentLevel(LevelProgressManager.Instance.HighestUnlockedLevel);
+            LevelProgressManager.Instance.StartNewRun();
         }
 
         SceneManager.LoadScene(level01SceneName);
