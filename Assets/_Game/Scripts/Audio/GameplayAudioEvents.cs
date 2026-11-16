@@ -61,7 +61,18 @@ public class GameplayAudioEvents : MonoBehaviour
 
     private void HandleLevelStateChanged(LevelState state)
     {
-        if (AudioManager.Instance != null && state != LevelState.Playing)
+        if (AudioManager.Instance == null || state == LevelState.Playing)
+        {
+            return;
+        }
+
+        // Branches instead of also calling PlayLevelEnding: the campaign's
+        // final win must only ever hear one ending stinger, never both.
+        if (levelManager.IsCampaignComplete)
+        {
+            AudioManager.Instance.PlayCampaignEnding();
+        }
+        else
         {
             AudioManager.Instance.PlayLevelEnding(state == LevelState.Won);
         }

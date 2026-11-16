@@ -62,6 +62,9 @@ public class AudioManager : MonoBehaviour
     [SerializeField] private SoundEffect levelCompleteSfx;
     [SerializeField] private SoundEffect levelFailedSfx;
 
+    [Tooltip("Played once when the campaign-ending screen appears (final level win), instead of levelCompleteSfx.")]
+    [SerializeField] private SoundEffect endingSfx;
+
     [Tooltip("Played by the settings menu so the player can hear the chosen SFX volume.")]
     [SerializeField] private SoundEffect previewSfx;
 
@@ -256,9 +259,25 @@ public class AudioManager : MonoBehaviour
     /// <summary>Fades the music down and plays the ending sound. Undone by the next scene load.</summary>
     public void PlayLevelEnding(bool won)
     {
+        DuckMusicForEnding();
+        PlaySfx(won ? levelCompleteSfx : levelFailedSfx);
+    }
+
+    /// <summary>
+    /// Fades the music down and plays the dedicated campaign-ending sound
+    /// instead of the normal win/lose stingers, so the final level's win
+    /// never layers the ending SFX on top of levelCompleteSfx.
+    /// </summary>
+    public void PlayCampaignEnding()
+    {
+        DuckMusicForEnding();
+        PlaySfx(endingSfx);
+    }
+
+    private void DuckMusicForEnding()
+    {
         StopRetractLoop();
         musicScaleTarget = levelEndMusicScale;
-        PlaySfx(won ? levelCompleteSfx : levelFailedSfx);
     }
 
     private void HandleSceneLoaded(Scene scene, LoadSceneMode mode)

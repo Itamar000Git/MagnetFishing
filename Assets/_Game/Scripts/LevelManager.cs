@@ -39,6 +39,7 @@ public class LevelManager : MonoBehaviour
     [SerializeField] private string mainMenuSceneName = "MainMenu";
 
     private float elapsedTime;
+    private bool activeLevelConfigResolved;
 
     public LevelState State { get; private set; } = LevelState.Playing;
 
@@ -47,6 +48,25 @@ public class LevelManager : MonoBehaviour
 
     /// <summary>True when the catalog has a LevelConfig for ActiveLevel + 1.</summary>
     public bool HasNextLevel => levelCatalog != null && levelCatalog.GetLevel(ActiveLevel + 1) != null;
+
+    /// <summary>
+    /// True once, on a win, when the active level's own LevelConfig resolved
+    /// successfully (not the inspector fallback) and the catalog has no level
+    /// after it. Gates the campaign-ending screen instead of the normal result
+    /// panel. Requiring activeLevelConfigResolved keeps a broken/missing
+    /// catalog reference from being misread as "campaign complete": in that
+    /// failure case HasNextLevel is also false, but for the wrong reason, so
+    /// this would otherwise show the ending after any level.
+    /// </summary>
+    public bool IsCampaignComplete => State == LevelState.Won && activeLevelConfigResolved && !HasNextLevel;
+
+    /// <summary>
+    /// The score committed to the campaign by this run's result (see
+    /// FinishLevel). Valid once State is no longer Playing; intended as the
+    /// single source of truth for displaying — and later submitting — the
+    /// final score.
+    /// </summary>
+    public int FinalCumulativeScore => LevelProgressManager.Instance != null ? LevelProgressManager.Instance.CumulativeScore : scoreManager.Score;
 
     /// <summary>Seconds left, never negative. Stays at 0 while a final retrieval finishes.</summary>
     public float RemainingTime => Mathf.Max(levelDuration - elapsedTime, 0f);
@@ -91,6 +111,7 @@ public class LevelManager : MonoBehaviour
     private void ApplyActiveLevelConfig(int activeLevel)
     {
         LevelConfig config = levelCatalog != null ? levelCatalog.GetLevel(activeLevel) : null;
+        activeLevelConfigResolved = config != null;
 
         if (config != null)
         {

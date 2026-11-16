@@ -24,6 +24,11 @@ public class LevelHUD : MonoBehaviour
     [Tooltip("Shown only on a win when LevelManager.HasNextLevel is true.")]
     [SerializeField] private GameObject nextLevelButton;
 
+    [Tooltip("Shown instead of resultPanel when LevelManager.IsCampaignComplete is true.")]
+    [SerializeField] private GameObject campaignEndingPanel;
+
+    [SerializeField] private TextMeshProUGUI finalScoreLabel;
+
     // Rewriting the label only when the shown second changes avoids a string
     // allocation and a TMP rebuild every frame.
     private int displayedSeconds = -1;
@@ -87,6 +92,30 @@ public class LevelHUD : MonoBehaviour
 
     private void HandleStateChanged(LevelState state)
     {
+        bool campaignComplete = levelManager.IsCampaignComplete;
+
+        if (campaignEndingPanel != null)
+        {
+            campaignEndingPanel.SetActive(campaignComplete);
+        }
+
+        if (campaignComplete)
+        {
+            // The campaign ending replaces the normal result panel entirely,
+            // so leave resultPanel/resultLabel/nextLevelButton untouched below.
+            if (resultPanel != null)
+            {
+                resultPanel.SetActive(false);
+            }
+
+            if (finalScoreLabel != null)
+            {
+                finalScoreLabel.text = $"FINAL SCORE: {levelManager.FinalCumulativeScore}";
+            }
+
+            return;
+        }
+
         if (resultPanel != null)
         {
             resultPanel.SetActive(state != LevelState.Playing);
