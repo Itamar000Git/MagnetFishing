@@ -43,6 +43,12 @@ public class LevelManager : MonoBehaviour
 
     public LevelState State { get; private set; } = LevelState.Playing;
 
+    /// <summary>The level number resolved for this run (from LevelProgressManager at Awake).</summary>
+    public int ActiveLevel { get; private set; }
+
+    /// <summary>True when the catalog has a LevelConfig for ActiveLevel + 1.</summary>
+    public bool HasNextLevel => levelCatalog != null && levelCatalog.GetLevel(ActiveLevel + 1) != null;
+
     /// <summary>Seconds left, never negative. Stays at 0 while a final retrieval finishes.</summary>
     public float RemainingTime => Mathf.Max(levelDuration - elapsedTime, 0f);
 
@@ -63,8 +69,8 @@ public class LevelManager : MonoBehaviour
             return;
         }
 
-        int activeLevel = LevelProgressManager.Instance != null ? LevelProgressManager.Instance.CurrentLevel : 1;
-        ApplyActiveLevelConfig(activeLevel);
+        ActiveLevel = LevelProgressManager.Instance != null ? LevelProgressManager.Instance.CurrentLevel : 1;
+        ApplyActiveLevelConfig(ActiveLevel);
 
         // Seed the runtime score with this level's entry checkpoint, not raw
         // CumulativeScore directly: EstablishLevelStartCheckpoint only re-reads
@@ -73,7 +79,7 @@ public class LevelManager : MonoBehaviour
         // or Main Menu -> Play while still on the same level) — it only takes
         // effect once the active level actually changes.
         int checkpoint = LevelProgressManager.Instance != null
-            ? LevelProgressManager.Instance.EstablishLevelStartCheckpoint(activeLevel)
+            ? LevelProgressManager.Instance.EstablishLevelStartCheckpoint(ActiveLevel)
             : 0;
         scoreManager.Initialize(checkpoint);
     }
@@ -165,5 +171,24 @@ public class LevelManager : MonoBehaviour
     public void LoadMainMenu()
     {
         SceneManager.LoadScene(mainMenuSceneName);
+    }
+
+    /// <summary>
+    /// Result panel button, shown only on a win when HasNextLevel is true:
+    /// unlocks and advances the campaign to ActiveLevel + 1, then reloads the
+    /// reusable gameplay scene so LevelContentSelector picks up the new level.
+    /// </summary>
+    public void NextLevel()
+    {
+        if (LevelProgressManager.Instance == null || !HasNextLevel)
+        {
+            Debug.LogWarning("LevelManager.NextLevel called with no next level available; ignoring.", this);
+            return;
+        }
+
+        int nextLevel = ActiveLevel + 1;
+        LevelProgressManager.Instance.UnlockLevel(nextLevel);
+        LevelProgressManager.Instance.SetCurrentLevel(nextLevel);
+        SceneManager.LoadScene(level01SceneName);
     }
 }

@@ -18,6 +18,9 @@ public class LevelHUD : MonoBehaviour
 
     [SerializeField] private TextMeshProUGUI resultLabel;
 
+    [Tooltip("Shown only on a win when LevelManager.HasNextLevel is true.")]
+    [SerializeField] private GameObject nextLevelButton;
+
     // Rewriting the label only when the shown second changes avoids a string
     // allocation and a TMP rebuild every frame.
     private int displayedSeconds = -1;
@@ -84,6 +87,11 @@ public class LevelHUD : MonoBehaviour
         if (resultLabel != null && state != LevelState.Playing)
         {
             resultLabel.text = state == LevelState.Won ? "LEVEL COMPLETE" : "LEVEL FAILED";
+        }
+
+        if (nextLevelButton != null)
+        {
+            nextLevelButton.SetActive(state == LevelState.Won && levelManager.HasNextLevel);
         }
     }
 }
