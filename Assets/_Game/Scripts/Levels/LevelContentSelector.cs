@@ -27,6 +27,8 @@ public class LevelContentSelector : MonoBehaviour
 
     private void Awake()
     {
+        WarnAboutDuplicateContentSetIds();
+
         string activeSetId = ResolveActiveCatchableSetId();
 
         if (contentSets == null)
@@ -39,6 +41,30 @@ public class LevelContentSelector : MonoBehaviour
             if (set.root != null)
             {
                 set.root.SetActive(set.catchableSetId == activeSetId);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Development-time sanity check only: warns if two entries share a
+    /// catchableSetId, which would make Awake's SetActive loop activate both
+    /// (or neither deterministically) content roots for that id. Does not
+    /// change ResolveActiveCatchableSetId's existing fallback behavior.
+    /// </summary>
+    [System.Diagnostics.Conditional("UNITY_EDITOR"), System.Diagnostics.Conditional("DEVELOPMENT_BUILD")]
+    private void WarnAboutDuplicateContentSetIds()
+    {
+        if (contentSets == null)
+        {
+            return;
+        }
+
+        var seen = new System.Collections.Generic.HashSet<string>();
+        foreach (ContentSet set in contentSets)
+        {
+            if (!string.IsNullOrEmpty(set.catchableSetId) && !seen.Add(set.catchableSetId))
+            {
+                Debug.LogWarning($"LevelContentSelector: duplicate catchableSetId \"{set.catchableSetId}\" in contentSets; only one of the matching roots' activation is meaningful.", this);
             }
         }
     }
